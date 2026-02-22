@@ -1,548 +1,710 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Jogo FPS 2.5D - ARMA CONSERTADO: Movimento + Mapa Visível + Mini-Map!</title>
-    <style>
-        body { margin: 0; overflow: hidden; touch-action: none; background: black; }
-        #canvas { display: block; cursor: crosshair; }
-        #controls { 
-            position: absolute; 
-            bottom: 10%; 
-            left: 0; 
-            right: 0; 
-            display: flex; 
-            justify-content: space-between; 
-            pointer-events: none; 
-            z-index: 10;
-        }
-        .joystick { 
-            width: 150px; 
-            height: 150px; 
-            background: rgba(0, 0, 0, 0.4); 
-            border-radius: 50%; 
-            position: relative; 
-            pointer-events: auto; 
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-        .joystick-inner { 
-            width: 60px; 
-            height: 60px; 
-            background: rgba(255, 255, 255, 0.6); 
-            border-radius: 50%; 
-            position: absolute; 
-            top: 45px; 
-            left: 45px; 
-            transition: 0.1s;
-        }
-        #rotate-left, #rotate-right { 
-            width: 90px; 
-            height: 90px; 
-            background: rgba(0, 0, 0, 0.4); 
-            border-radius: 50%; 
-            margin: 0 15px; 
-            align-self: center; 
-            pointer-events: auto; 
-            font-size: 40px; 
-            text-align: center; 
-            line-height: 90px; 
-            color: white; 
-            border: 2px solid rgba(255,255,255,0.3);
-            user-select: none;
-        }
-        #fire-btn { 
-            position: absolute; 
-            bottom: 35%; 
-            right: 5%; 
-            width: 80px; 
-            height: 80px; 
-            background: rgba(255,0,0,0.6); 
-            border-radius: 50%; 
-            color: white; 
-            font-size: 30px; 
-            text-align: center; 
-            line-height: 80px; 
-            pointer-events: auto; 
-            border: 2px solid rgba(255,255,255,0.5);
-            user-select: none;
-        }
-        #switch-btn { 
-            position: absolute; 
-            bottom: 50%; 
-            right: 5%; 
-            width: 80px; 
-            height: 80px; 
-            background: rgba(0,0,255,0.6); 
-            border-radius: 50%; 
-            color: white; 
-            font-size: 20px; 
-            text-align: center; 
-            line-height: 80px; 
-            pointer-events: auto; 
-            border: 2px solid rgba(255,255,255,0.5);
-            user-select: none;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Jogo FPS 2.5D - Corrigido</title>
+  <style>
+    body { margin: 0; overflow: hidden; touch-action: none; background: black; }
+    #canvas { display: block; cursor: crosshair; }
+    #controls {
+      position: absolute;
+      bottom: 10%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .joystick {
+      width: 150px;
+      height: 150px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 50%;
+      position: relative;
+      pointer-events: auto;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    .joystick-inner {
+      width: 60px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      position: absolute;
+      top: 45px;
+      left: 45px;
+      transition: 0.1s;
+    }
+    #rotate-left, #rotate-right {
+      width: 90px;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 50%;
+      margin: 0 15px;
+      align-self: center;
+      pointer-events: auto;
+      font-size: 40px;
+      text-align: center;
+      line-height: 90px;
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      user-select: none;
+    }
+    #fire-btn {
+      position: absolute;
+      bottom: 35%;
+      right: 5%;
+      width: 80px;
+      height: 80px;
+      background: rgba(255,0,0,0.6);
+      border-radius: 50%;
+      color: white;
+      font-size: 30px;
+      text-align: center;
+      line-height: 80px;
+      pointer-events: auto;
+      border: 2px solid rgba(255,255,255,0.5);
+      user-select: none;
+    }
+    #switch-btn {
+      position: absolute;
+      bottom: 50%;
+      right: 5%;
+      width: 80px;
+      height: 80px;
+      background: rgba(0,0,255,0.6);
+      border-radius: 50%;
+      color: white;
+      font-size: 20px;
+      text-align: center;
+      line-height: 80px;
+      pointer-events: auto;
+      border: 2px solid rgba(255,255,255,0.5);
+      user-select: none;
+    }
+  </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    <div id="controls">
-        <div id="move-joystick" class="joystick"><div class="joystick-inner"></div></div>
-        <div style="flex: 1;"></div>
-        <div id="rotate-left">◀</div>
-        <div id="rotate-right">▶</div>
-    </div>
-    <div id="fire-btn">🔫</div>
-    <div id="switch-btn">Trocar</div>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
+  <canvas id="canvas"></canvas>
 
-        // Mapa
-        const map = [
-            [1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,0,0,1],
-            [1,0,1,0,0,0,1,0,0,1],
-            [1,0,0,0,1,0,0,0,0,1],
-            [1,0,1,0,1,1,1,0,1,1],
-            [1,0,1,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,0,0,1],
-            [1,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1]
-        ];
-        const mapSize = 10;
-        const tileSize = 64;
-        const playerSize = tileSize * 0.3;
+  <div id="controls">
+    <div id="move-joystick" class="joystick"><div class="joystick-inner"></div></div>
+    <div style="flex: 1;"></div>
+    <div id="rotate-left">◀</div>
+    <div id="rotate-right">▶</div>
+  </div>
 
-        // Jogador - SPAWN CONSERTADO em área aberta (tile 1,1)
-        let playerX = 1 * tileSize + tileSize * 0.5; // 64 + 32 = 96
-        let playerY = 1 * tileSize + tileSize * 0.5; // 96
-        let playerAngle = 0;
-        const fov = Math.PI / 3;
-        const rayCount = Math.min(width, 800);
-        const moveSpeed = 4;
-        const rotateSpeed = 0.08;
+  <div id="fire-btn">🔫</div>
+  <div id="switch-btn">Trocar</div>
 
-        // Arma atual (0: pistola, 1: sniper)
-        let currentWeapon = 0;
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-        // Tempo para animações
-        let time = 0;
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
 
-        // Controles
-        const keys = {};
-        let firing = false;
-        let moveTouchId = null;
-        let moveDeltaX = 0, moveDeltaY = 0;
-        let rotatingLeft = false, rotatingRight = false;
+    // Mapa
+    const map = [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,1,0,0,1],
+      [1,0,1,0,0,0,1,0,0,1],
+      [1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,0,1,1,1,0,1,1],
+      [1,0,1,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,1,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ];
+    const mapSize = 10;
+    const tileSize = 64;
+    const playerSize = tileSize * 0.3;
 
-        const moveJoystick = document.getElementById('move-joystick');
-        const moveInner = moveJoystick.querySelector('.joystick-inner');
-        const rotateLeftBtn = document.getElementById('rotate-left');
-        const rotateRightBtn = document.getElementById('rotate-right');
-        const fireBtn = document.getElementById('fire-btn');
-        const switchBtn = document.getElementById('switch-btn');
+    // Jogador
+    let playerX = 1 * tileSize + tileSize * 0.5; // 96
+    let playerY = 1 * tileSize + tileSize * 0.5; // 96
+    let playerAngle = 0;
 
-        // Teclado
-        window.addEventListener('keydown', e => {
-            const key = e.key.toLowerCase();
-            keys[key] = true;
-            if (key === ' ') {
-                e.preventDefault();
-                firing = true;
-            }
-        });
-        window.addEventListener('keyup', e => {
-            const key = e.key.toLowerCase();
-            keys[key] = false;
-            if (key === ' ') firing = false;
-        });
+    const fov = Math.PI / 3;
+    let rayCount = Math.min(width, 800);
 
-        // Joystick - CORRIGIDO para e.touches
-        moveJoystick.addEventListener('touchstart', e => {
-            e.preventDefault();
-            moveTouchId = e.changedTouches[0].identifier;
-        }, {passive: false});
-        moveJoystick.addEventListener('touchmove', e => {
-            e.preventDefault();
-            for (let touch of e.touches) {  // MUDADO PARA e.touches
-                if (touch.identifier === moveTouchId) {
-                    const rect = moveJoystick.getBoundingClientRect();
-                    moveDeltaX = (touch.clientX - rect.left - 75) / 75;
-                    moveDeltaY = (touch.clientY - rect.top - 75) / 75;
-                    const dist = Math.hypot(moveDeltaX, moveDeltaY);
-                    if (dist > 1) {
-                        moveDeltaX /= dist;
-                        moveDeltaY /= dist;
-                    }
-                    moveInner.style.transform = `translate(${moveDeltaX * 45}px, ${moveDeltaY * 45}px)`;
-                    break;
-                }
-            }
-        }, {passive: false});
-        moveJoystick.addEventListener('touchend', e => {
-            e.preventDefault();
-            for (let touch of e.changedTouches) {
-                if (touch.identifier === moveTouchId) {
-                    moveTouchId = null;
-                    moveDeltaX = 0;
-                    moveDeltaY = 0;
-                    moveInner.style.transform = 'translate(0,0)';
-                    break;
-                }
-            }
-        }, {passive: false});
+    const moveSpeed = 4;
+    const rotateSpeed = 0.08;
 
-        // Rotação touch
-        rotateLeftBtn.addEventListener('touchstart', () => rotatingLeft = true, {passive: false});
-        rotateLeftBtn.addEventListener('touchend', () => rotatingLeft = false, {passive: false});
-        rotateRightBtn.addEventListener('touchstart', () => rotatingRight = true, {passive: false});
-        rotateRightBtn.addEventListener('touchend', () => rotatingRight = false, {passive: false});
+    // Arma atual (0: pistola, 1: sniper)
+    let currentWeapon = 0;
 
-        // Tiro touch
-        fireBtn.addEventListener('touchstart', () => firing = true, {passive: false});
-        fireBtn.addEventListener('touchend', () => firing = false, {passive: false});
+    // Tempo para animações
+    let time = 0;
 
-        // Trocar arma
-        switchBtn.addEventListener('touchstart', () => currentWeapon = 1 - currentWeapon, {passive: false});
+    // Controles
+    const keys = {};
+    let firing = false;
+    let moveTouchId = null;
+    let moveDeltaX = 0, moveDeltaY = 0;
+    let rotatingLeft = false, rotatingRight = false;
 
-        function collides(newX, newY) {
-            const half = playerSize / 2;
-            const corners = [
-                [newX - half, newY - half],
-                [newX + half, newY - half],
-                [newX - half, newY + half],
-                [newX + half, newY + half]
-            ];
-            for (let [cx, cy] of corners) {
-                const mapX = Math.floor(cx / tileSize);
-                const mapY = Math.floor(cy / tileSize);
-                if (mapX < 0 || mapX >= mapSize || mapY < 0 || mapY >= mapSize || map[mapY][mapX] === 1) {
-                    return true;
-                }
-            }
-            return false;
+    const moveJoystick = document.getElementById('move-joystick');
+    const moveInner = moveJoystick.querySelector('.joystick-inner');
+    const rotateLeftBtn = document.getElementById('rotate-left');
+    const rotateRightBtn = document.getElementById('rotate-right');
+    const fireBtn = document.getElementById('fire-btn');
+    const switchBtn = document.getElementById('switch-btn');
+
+    // Teclado
+    window.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      keys[key] = true;
+      if (key === ' ') {
+        e.preventDefault();
+        firing = true;
+      }
+    });
+    window.addEventListener('keyup', e => {
+      const key = e.key.toLowerCase();
+      keys[key] = false;
+      if (key === ' ') firing = false;
+    });
+
+    // Joystick
+    moveJoystick.addEventListener('touchstart', e => {
+      e.preventDefault();
+      moveTouchId = e.changedTouches[0].identifier;
+    }, { passive: false });
+
+    moveJoystick.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (let touch of e.touches) {
+        if (touch.identifier === moveTouchId) {
+          const rect = moveJoystick.getBoundingClientRect();
+          moveDeltaX = (touch.clientX - rect.left - 75) / 75;
+          moveDeltaY = (touch.clientY - rect.top - 75) / 75;
+
+          const dist = Math.hypot(moveDeltaX, moveDeltaY);
+          if (dist > 1) { moveDeltaX /= dist; moveDeltaY /= dist; }
+
+          moveInner.style.transform = `translate(${moveDeltaX * 45}px, ${moveDeltaY * 45}px)`;
+          break;
+        }
+      }
+    }, { passive: false });
+
+    moveJoystick.addEventListener('touchend', e => {
+      e.preventDefault();
+      for (let touch of e.changedTouches) {
+        if (touch.identifier === moveTouchId) {
+          moveTouchId = null;
+          moveDeltaX = 0;
+          moveDeltaY = 0;
+          moveInner.style.transform = 'translate(0,0)';
+          break;
+        }
+      }
+    }, { passive: false });
+
+    // Rotação touch
+    rotateLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); rotatingLeft = true; }, { passive: false });
+    rotateLeftBtn.addEventListener('touchend',   (e) => { e.preventDefault(); rotatingLeft = false; }, { passive: false });
+    rotateRightBtn.addEventListener('touchstart',(e) => { e.preventDefault(); rotatingRight = true; }, { passive: false });
+    rotateRightBtn.addEventListener('touchend',  (e) => { e.preventDefault(); rotatingRight = false; }, { passive: false });
+
+    // Tiro touch
+    fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); firing = true; }, { passive: false });
+    fireBtn.addEventListener('touchend',   (e) => { e.preventDefault(); firing = false; }, { passive: false });
+
+    // Trocar arma
+    switchBtn.addEventListener('touchstart', (e) => { e.preventDefault(); currentWeapon = 1 - currentWeapon; }, { passive: false });
+
+    function collides(newX, newY) {
+      const half = playerSize / 2;
+      const corners = [
+        [newX - half, newY - half],
+        [newX + half, newY - half],
+        [newX - half, newY + half],
+        [newX + half, newY + half]
+      ];
+      for (let [cx, cy] of corners) {
+        const mapX = Math.floor(cx / tileSize);
+        const mapY = Math.floor(cy / tileSize);
+        if (mapX < 0 || mapX >= mapSize || mapY < 0 || mapY >= mapSize || map[mapY][mapX] === 1) return true;
+      }
+      return false;
+    }
+
+    function castRays() {
+      const rayStep = 2;
+
+      for (let i = 0; i < width; i += rayStep) {
+        const rayIndex = Math.floor(i * rayCount / width);
+        const rayAngle = playerAngle - fov / 2 + (fov * rayIndex / rayCount);
+
+        let dist = 0;
+        let rayX = playerX;
+        let rayY = playerY;
+
+        while (dist < 1200) {
+          rayX += Math.cos(rayAngle) * 2;
+          rayY += Math.sin(rayAngle) * 2;
+          dist += 2;
+
+          const mapX = Math.floor(rayX / tileSize);
+          const mapY = Math.floor(rayY / tileSize);
+          if (mapX < 0 || mapX >= mapSize || mapY < 0 || mapY >= mapSize || map[mapY][mapX] === 1) break;
         }
 
-        function castRays() {
-            const rayStep = 2;
-            for (let i = 0; i < width; i += rayStep) {
-                const rayIndex = Math.floor(i * rayCount / width);
-                const rayAngle = playerAngle - fov / 2 + (fov * rayIndex / rayCount);
-                let dist = 0;
-                let rayX = playerX;
-                let rayY = playerY;
-                while (dist < 1200) {
-                    rayX += Math.cos(rayAngle) * 2;
-                    rayY += Math.sin(rayAngle) * 2;
-                    dist += 2;
-                    const mapX = Math.floor(rayX / tileSize);
-                    const mapY = Math.floor(rayY / tileSize);
-                    if (mapX < 0 || mapX >= mapSize || mapY < 0 || mapY >= mapSize || map[mapY][mapX] === 1) break;
-                }
-                const correctedDist = dist * Math.cos(rayAngle - playerAngle);
-                const wallH = Math.min(height * tileSize / correctedDist, height * 2);
-                const shade = Math.max(0, 255 - correctedDist * 0.5);
+        const correctedDist = dist * Math.cos(rayAngle - playerAngle);
+        const wallH = Math.min(height * tileSize / correctedDist, height * 2);
+        const shade = Math.max(0, 255 - correctedDist * 0.5);
 
-                const g = ctx.createLinearGradient(i, 0, i, height);
-                g.addColorStop(0, `rgb(${shade}, ${shade*0.8}, ${shade*0.6})`);
-                g.addColorStop(1, `rgb(${shade*0.5}, ${shade*0.4}, ${shade*0.3})`);
-                ctx.fillStyle = g;
-                ctx.fillRect(i, (height - wallH)/2, rayStep, wallH);
+        const g = ctx.createLinearGradient(i, 0, i, height);
+        g.addColorStop(0, `rgb(${shade}, ${shade*0.8}, ${shade*0.6})`);
+        g.addColorStop(1, `rgb(${shade*0.5}, ${shade*0.4}, ${shade*0.3})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(i, (height - wallH)/2, rayStep, wallH);
 
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(i, 0, rayStep, (height - wallH)/2);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(i, (height + wallH)/2, rayStep, (height - wallH)/2);
-            }
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(i, 0, rayStep, (height - wallH)/2);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(i, (height + wallH)/2, rayStep, (height - wallH)/2);
+      }
 
-            // Mira central
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(width/2 - 20, height/2);
-            ctx.lineTo(width/2 + 20, height/2);
-            ctx.moveTo(width/2, height/2 - 20);
-            ctx.lineTo(width/2, height/2 + 20);
-            ctx.stroke();
+      // Mira
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(width/2 - 20, height/2);
+      ctx.lineTo(width/2 + 20, height/2);
+      ctx.moveTo(width/2, height/2 - 20);
+      ctx.lineTo(width/2, height/2 + 20);
+      ctx.stroke();
+    }
+
+    function drawMiniMap() {
+      const miniSize = 150;
+      const tileMini = miniSize / mapSize;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(width - miniSize - 20, 20, miniSize, miniSize);
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(width - miniSize - 20, 20, miniSize, miniSize);
+
+      for (let y = 0; y < mapSize; y++) {
+        for (let x = 0; x < mapSize; x++) {
+          ctx.fillStyle = map[y][x] ? '#666' : 'rgba(255,255,255,0.1)';
+          ctx.fillRect(width - miniSize - 20 + x * tileMini, 20 + y * tileMini, tileMini - 1, tileMini - 1);
         }
+      }
 
-        // MINI-MAP NOVO! Canto superior direito
-        function drawMiniMap() {
-            const miniSize = 150;
-            const tileMini = miniSize / mapSize;
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(width - miniSize - 20, 20, miniSize, miniSize);
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(width - miniSize - 20, 20, miniSize, miniSize);
+      const px = width - miniSize - 20 + (playerX / tileSize) * tileMini;
+      const py = 20 + (playerY / tileSize) * tileMini;
 
-            // Paredes
-            for (let y = 0; y < mapSize; y++) {
-                for (let x = 0; x < mapSize; x++) {
-                    ctx.fillStyle = map[y][x] ? '#666' : 'rgba(255,255,255,0.1)';
-                    ctx.fillRect(width - miniSize - 20 + x * tileMini, 20 + y * tileMini, tileMini - 1, tileMini - 1);
-                }
-            }
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fill();
 
-            // Player (ponto vermelho + linha de visão amarela)
-            const px = width - miniSize - 20 + (playerX / tileSize) * tileMini;
-            const py = 20 + (playerY / tileSize) * tileMini;
-            ctx.fillStyle = 'red';
-            ctx.beginPath();
-            ctx.arc(px, py, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'yellow';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(px + Math.cos(playerAngle) * 30, py + Math.sin(playerAngle) * 30);
-            ctx.stroke();
-        }
+      ctx.strokeStyle = 'yellow';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(playerAngle) * 30, py + Math.sin(playerAngle) * 30);
+      ctx.stroke();
+    }
 
-        // MOVIMENTO CONSERTADO: Vetor normalizado (sem boost diagonal)
-        function updatePlayer() {
-            let forwardInput = 0;
-            let strafeInput = 0;
+    function updatePlayer() {
+      let forwardInput = 0;
+      let strafeInput = 0;
 
-            // Joystick tem prioridade se ativo
-            if (moveTouchId !== null) {
-                forwardInput = -moveDeltaY;  // Negativo Y = forward
-                strafeInput = moveDeltaX;
-            } else {
-                // Teclado
-                if (keys['w']) forwardInput = 1;
-                if (keys['s']) forwardInput = -1;
-                if (keys['a']) strafeInput = -1;
-                if (keys['d']) strafeInput = 1;
-            }
+      if (moveTouchId !== null) {
+        forwardInput = -moveDeltaY;
+        strafeInput = moveDeltaX;
+      } else {
+        if (keys['w']) forwardInput = 1;
+        if (keys['s']) forwardInput = -1;
+        if (keys['a']) strafeInput = -1;
+        if (keys['d']) strafeInput = 1;
+      }
 
-            // Normaliza para evitar speed boost diagonal
-            const inputMag = Math.hypot(forwardInput, strafeInput);
-            if (inputMag > 0.01) {
-                forwardInput /= inputMag;
-                strafeInput /= inputMag;
-            }
+      const inputMag = Math.hypot(forwardInput, strafeInput);
+      if (inputMag > 0.01) { forwardInput /= inputMag; strafeInput /= inputMag; }
 
-            // Aplica direção do player
-            const dx = (Math.cos(playerAngle) * forwardInput + Math.cos(playerAngle + Math.PI / 2) * strafeInput) * moveSpeed;
-            const dy = (Math.sin(playerAngle) * forwardInput + Math.sin(playerAngle + Math.PI / 2) * strafeInput) * moveSpeed;
+      const dx = (Math.cos(playerAngle) * forwardInput + Math.cos(playerAngle + Math.PI / 2) * strafeInput) * moveSpeed;
+      const dy = (Math.sin(playerAngle) * forwardInput + Math.sin(playerAngle + Math.PI / 2) * strafeInput) * moveSpeed;
 
-            const newX = playerX + dx;
-            const newY = playerY + dy;
-            if (!collides(newX, newY)) {
-                playerX = newX;
-                playerY = newY;
-            } else {
-                // Slide nas paredes
-                if (!collides(playerX + dx, playerY)) playerX += dx;
-                if (!collides(playerX, playerY + dy)) playerY += dy;
-            }
+      const newX = playerX + dx;
+      const newY = playerY + dy;
 
-            // Rotação
-            if (rotatingLeft || keys['arrowleft']) playerAngle -= rotateSpeed * 2;
-            if (rotatingRight || keys['arrowright']) playerAngle += rotateSpeed * 2;
-            playerAngle = (playerAngle + Math.PI * 2) % (Math.PI * 2);
-        }
+      if (!collides(newX, newY)) {
+        playerX = newX;
+        playerY = newY;
+      } else {
+        if (!collides(playerX + dx, playerY)) playerX += dx;
+        if (!collides(playerX, playerY + dy)) playerY += dy;
+      }
 
-        // Funções de desenho das armas (iguais ao anterior)
-        function drawPistol() {
-            const scale = height / 400;
-            const x = width / 2 + 100 * scale;
-            const y = height - 150 * scale;
-            const bob = Math.sin(time * 5) * 5 * scale;
-            const sway = Math.sin(time * 3) * 3 * scale;
+      if (rotatingLeft || keys['arrowleft']) playerAngle -= rotateSpeed * 2;
+      if (rotatingRight || keys['arrowright']) playerAngle += rotateSpeed * 2;
+      playerAngle = (playerAngle + Math.PI * 2) % (Math.PI * 2);
+    }
 
-            ctx.save();
-            ctx.translate(x + sway, y + bob);
-            ctx.scale(scale, scale);
+    // --- ARMAS ---
+    function drawPistol() {
+      const scale = height / 400;
+      const x = width / 2 + 100 * scale;
+      const y = height - 150 * scale;
+      const bob = Math.sin(time * 5) * 5 * scale;
+      const sway = Math.sin(time * 3) * 3 * scale;
 
-            // Corpo principal
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(200, 0);
-            ctx.quadraticCurveTo(220, 10, 220, 30);
-            ctx.lineTo(220, 50);
-            ctx.lineTo(200, 60);
-            ctx.lineTo(0, 60);
-            ctx.lineTo(-20, 50);
-            ctx.lineTo(-20, 10);
-            ctx.quadraticCurveTo(0, 0, 0, 0);
-            ctx.closePath();
-            const bodyGrad = ctx.createLinearGradient(0, 0, 0, 60);
-            bodyGrad.addColorStop(0, '#333');
-            bodyGrad.addColorStop(1, '#111');
-            ctx.fillStyle = bodyGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+      ctx.save();
+      ctx.translate(x + sway, y + bob);
+      ctx.scale(scale, scale);
 
-            // Ranhuras slide
-            for (let i = 0; i < 5; i++) {
-                ctx.strokeStyle = '#222';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(100 + i * 20, 5);
-                ctx.lineTo(100 + i * 20, 55);
-                ctx.stroke();
-            }
+      // Corpo principal
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(200, 0);
+      ctx.quadraticCurveTo(220, 10, 220, 30);
+      ctx.lineTo(220, 50);
+      ctx.lineTo(200, 60);
+      ctx.lineTo(0, 60);
+      ctx.lineTo(-20, 50);
+      ctx.lineTo(-20, 10);
+      ctx.quadraticCurveTo(0, 0, 0, 0);
+      ctx.closePath();
+      const bodyGrad = ctx.createLinearGradient(0, 0, 0, 60);
+      bodyGrad.addColorStop(0, '#333');
+      bodyGrad.addColorStop(1, '#111');
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-            // Cano
-            ctx.beginPath();
-            ctx.moveTo(220, 20);
-            ctx.lineTo(280, 20);
-            ctx.lineTo(280, 40);
-            ctx.lineTo(220, 40);
-            ctx.closePath();
-            const barrelGrad = ctx.createLinearGradient(220, 20, 280, 40);
-            barrelGrad.addColorStop(0, '#444');
-            barrelGrad.addColorStop(1, '#222');
-            ctx.fillStyle = barrelGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#666';
-            ctx.stroke();
+      // Ranhuras slide
+      for (let i = 0; i < 5; i++) {
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(100 + i * 20, 5);
+        ctx.lineTo(100 + i * 20, 55);
+        ctx.stroke();
+      }
 
-            // Orifício
-            ctx.beginPath();
-            ctx.ellipse(280, 30, 8, 10, 0, 0, Math.PI * 2);
-            ctx.fillStyle = '#000';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(280, 30, 6, 8, 0, 0, Math.PI * 2);
-            ctx.fillStyle = '#111';
-            ctx.fill();
+      // Cano
+      ctx.beginPath();
+      ctx.moveTo(220, 20);
+      ctx.lineTo(280, 20);
+      ctx.lineTo(280, 40);
+      ctx.lineTo(220, 40);
+      ctx.closePath();
+      const barrelGrad = ctx.createLinearGradient(220, 20, 280, 40);
+      barrelGrad.addColorStop(0, '#444');
+      barrelGrad.addColorStop(1, '#222');
+      ctx.fillStyle = barrelGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#666';
+      ctx.stroke();
 
-            // Gatilho
-            ctx.beginPath();
-            ctx.moveTo(50, 60);
-            ctx.quadraticCurveTo(40, 80, 60, 100);
-            ctx.quadraticCurveTo(80, 80, 70, 60);
-            ctx.closePath();
-            ctx.fillStyle = '#222';
-            ctx.fill();
-            ctx.strokeStyle = '#444';
-            ctx.stroke();
+      // Orifício
+      ctx.beginPath();
+      ctx.ellipse(280, 30, 8, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(280, 30, 6, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#111';
+      ctx.fill();
 
-            ctx.beginPath();
-            ctx.moveTo(40, 60);
-            ctx.bezierCurveTo(30, 90, 80, 90, 90, 60);
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 4;
-            ctx.stroke();
+      // Gatilho
+      ctx.beginPath();
+      ctx.moveTo(50, 60);
+      ctx.quadraticCurveTo(40, 80, 60, 100);
+      ctx.quadraticCurveTo(80, 80, 70, 60);
+      ctx.closePath();
+      ctx.fillStyle = '#222';
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.stroke();
 
-            // Empunhadura
-            ctx.beginPath();
-            ctx.moveTo(-20, 50);
-            ctx.lineTo(0, 60);
-            ctx.lineTo(50, 60);
-            ctx.lineTo(50, 120);
-            ctx.quadraticCurveTo(20, 140, -20, 120);
-            ctx.closePath();
-            const gripGrad = ctx.createLinearGradient(0, 60, 0, 120);
-            gripGrad.addColorStop(0, '#222');
-            gripGrad.addColorStop(1, '#000');
-            ctx.fillStyle = gripGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#444';
-            ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(40, 60);
+      ctx.bezierCurveTo(30, 90, 80, 90, 90, 60);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 4;
+      ctx.stroke();
 
-            // Ranhuras empunhadura
-            for (let i = 0; i < 8; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, 70 + i * 6);
-                ctx.lineTo(40, 70 + i * 6);
-                ctx.strokeStyle = '#111';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
+      // Empunhadura
+      ctx.beginPath();
+      ctx.moveTo(-20, 50);
+      ctx.lineTo(0, 60);
+      ctx.lineTo(50, 60);
+      ctx.lineTo(50, 120);
+      ctx.quadraticCurveTo(20, 140, -20, 120);
+      ctx.closePath();
+      const gripGrad = ctx.createLinearGradient(0, 60, 0, 120);
+      gripGrad.addColorStop(0, '#222');
+      gripGrad.addColorStop(1, '#000');
+      ctx.fillStyle = gripGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.stroke();
 
-            // Miras
-            ctx.beginPath();
-            ctx.moveTo(10, -5);
-            ctx.lineTo(30, -5);
-            ctx.lineTo(30, -15);
-            ctx.lineTo(20, -20);
-            ctx.lineTo(10, -15);
-            ctx.closePath();
-            ctx.fillStyle = '#444';
-            ctx.fill();
-            ctx.strokeStyle = '#666';
-            ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 70 + i * 6);
+        ctx.lineTo(40, 70 + i * 6);
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
-            ctx.beginPath();
-            ctx.moveTo(270, 15);
-            ctx.lineTo(280, 15);
-            ctx.lineTo(275, 5);
-            ctx.closePath();
-            ctx.fillStyle = '#444';
-            ctx.fill();
+      // Miras
+      ctx.beginPath();
+      ctx.moveTo(10, -5);
+      ctx.lineTo(30, -5);
+      ctx.lineTo(30, -15);
+      ctx.lineTo(20, -20);
+      ctx.lineTo(10, -15);
+      ctx.closePath();
+      ctx.fillStyle = '#444';
+      ctx.fill();
+      ctx.strokeStyle = '#666';
+      ctx.stroke();
 
-            // Flash tiro
-            if (firing) {
-                ctx.beginPath();
-                ctx.moveTo(280, 30);
-                ctx.lineTo(320, 20);
-                ctx.lineTo(320, 40);
-                ctx.closePath();
-                const flashGrad = ctx.createRadialGradient(280, 30, 0, 280, 30, 40);
-                flashGrad.addColorStop(0, 'yellow');
-                flashGrad.addColorStop(1, 'orange');
-                ctx.fillStyle = flashGrad;
-                ctx.fill();
-            }
+      ctx.beginPath();
+      ctx.moveTo(270, 15);
+      ctx.lineTo(280, 15);
+      ctx.lineTo(275, 5);
+      ctx.closePath();
+      ctx.fillStyle = '#444';
+      ctx.fill();
 
-            ctx.restore();
-        }
+      // Flash tiro
+      if (firing) {
+        ctx.beginPath();
+        ctx.moveTo(280, 30);
+        ctx.lineTo(320, 20);
+        ctx.lineTo(320, 40);
+        ctx.closePath();
+        const flashGrad = ctx.createRadialGradient(280, 30, 0, 280, 30, 40);
+        flashGrad.addColorStop(0, 'yellow');
+        flashGrad.addColorStop(1, 'orange');
+        ctx.fillStyle = flashGrad;
+        ctx.fill();
+      }
 
-        function drawSniper() {
-            const scale = height / 400;
-            const x = width / 2 + 50 * scale;
-            const y = height - 150 * scale;
-            const bob = Math.sin(time * 5) * 5 * scale;
-            const sway = Math.sin(time * 3) * 3 * scale;
+      ctx.restore();
+    }
 
-            ctx.save();
-            ctx.translate(x + sway, y + bob);
-            ctx.scale(scale, scale);
+    function drawSniper() {
+      const scale = height / 400;
+      const x = width / 2 + 50 * scale;
+      const y = height - 150 * scale;
+      const bob = Math.sin(time * 5) * 5 * scale;
+      const sway = Math.sin(time * 3) * 3 * scale;
 
-            // Receiver
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(300, 0);
-            ctx.quadraticCurveTo(320, 10, 320, 30);
-            ctx.lineTo(320, 50);
-            ctx.lineTo(300, 60);
-            ctx.lineTo(0, 60);
-            ctx.lineTo(-50, 50);
-            ctx.lineTo(-50, 10);
-            ctx.quadraticCurveTo(0, 0, 0, 0);
-            ctx.closePath();
-            const bodyGrad = ctx.createLinearGradient(0, 0, 0, 60);
-            bodyGrad.addColorStop(0, '#2a2a2a');
-            bodyGrad.addColorStop(1, '#101010');
-            ctx.fillStyle = bodyGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#4a4a4a';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+      ctx.save();
+      ctx.translate(x + sway, y + bob);
+      ctx.scale(scale, scale);
 
-            // Parafusos
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.arc(100 + i * 50, 30, 5, 0, Math.PI * 2);
-                ctx.fillStyle = '#333';
-                ctx.fill();
-            }
+      // Receiver
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(300, 0);
+      ctx.quadraticCurveTo(320, 10, 320, 30);
+      ctx.lineTo(320, 50);
+      ctx.lineTo(300, 60);
+      ctx.lineTo(0, 60);
+      ctx.lineTo(-50, 50);
+      ctx.lineTo(-50, 10);
+      ctx.quadraticCurveTo(0, 0, 0, 0);
+      ctx.closePath();
+      const bodyGrad = ctx.createLinearGradient(0, 0, 0, 60);
+      bodyGrad.addColorStop(0, '#2a2a2a');
+      bodyGrad.addColorStop(1, '#101010');
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#4a4a4a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-            // Cano longo
-            ctx.beginPath();
-            ctx.moveTo(320, 15);
-            ctx.lineTo(600, 15);
-            ctx.lineTo(600, 45);
-            ctx.lineTo(320, 45);
-            ctx.closePath
+      // Parafusos
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(100 + i * 50, 30, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#333';
+        ctx.fill();
+      }
+
+      // Cano
+      ctx.beginPath();
+      ctx.moveTo(320, 15);
+      ctx.lineTo(600, 15);
+      ctx.lineTo(600, 45);
+      ctx.lineTo(320, 45);
+      ctx.closePath();
+      const barrelGrad = ctx.createLinearGradient(320, 15, 600, 45);
+      barrelGrad.addColorStop(0, '#3a3a3a');
+      barrelGrad.addColorStop(1, '#1a1a1a');
+      ctx.fillStyle = barrelGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#5a5a5a';
+      ctx.stroke();
+
+      // Supressor
+      ctx.beginPath();
+      ctx.moveTo(600, 10);
+      ctx.lineTo(650, 10);
+      ctx.lineTo(650, 50);
+      ctx.lineTo(600, 50);
+      ctx.closePath();
+      ctx.fillStyle = '#222';
+      ctx.fill();
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(610 + i * 10, 10);
+        ctx.lineTo(610 + i * 10, 50);
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Orifício
+      ctx.beginPath();
+      ctx.ellipse(650, 30, 10, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(650, 30, 8, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#111';
+      ctx.fill();
+
+      // Coronha
+      ctx.beginPath();
+      ctx.moveTo(-50, 50);
+      ctx.lineTo(-150, 70);
+      ctx.quadraticCurveTo(-200, 90, -200, 120);
+      ctx.lineTo(-180, 120);
+      ctx.quadraticCurveTo(-180, 90, -130, 70);
+      ctx.lineTo(-50, 50);
+      ctx.closePath();
+      const stockGrad = ctx.createLinearGradient(-50, 50, -200, 120);
+      stockGrad.addColorStop(0, '#333');
+      stockGrad.addColorStop(1, '#111');
+      ctx.fillStyle = stockGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#555';
+      ctx.stroke();
+
+      // Empunhadura
+      ctx.beginPath();
+      ctx.moveTo(50, 60);
+      ctx.quadraticCurveTo(30, 100, 70, 120);
+      ctx.quadraticCurveTo(90, 100, 70, 60);
+      ctx.closePath();
+      ctx.fillStyle = '#222';
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.stroke();
+
+      // Gatilho
+      ctx.beginPath();
+      ctx.moveTo(80, 60);
+      ctx.bezierCurveTo(70, 80, 100, 80, 110, 60);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Luneta
+      ctx.beginPath();
+      ctx.moveTo(150, -20);
+      ctx.lineTo(250, -20);
+      ctx.lineTo(250, -40);
+      ctx.lineTo(150, -40);
+      ctx.closePath();
+      const scopeGrad = ctx.createLinearGradient(150, -20, 250, -40);
+      scopeGrad.addColorStop(0, '#444');
+      scopeGrad.addColorStop(1, '#222');
+      ctx.fillStyle = scopeGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#666';
+      ctx.stroke();
+
+      // Lentes
+      ctx.beginPath();
+      ctx.ellipse(250, -30, 10, 15, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(150, -30, 8, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#111';
+      ctx.fill();
+
+      // Bipé
+      ctx.beginPath();
+      ctx.moveTo(400, 50);
+      ctx.lineTo(380, 80);
+      ctx.lineTo(400, 80);
+      ctx.lineTo(420, 80);
+      ctx.lineTo(400, 50);
+      ctx.moveTo(420, 50);
+      ctx.lineTo(440, 80);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Flash tiro
+      if (firing) {
+        ctx.beginPath();
+        ctx.moveTo(650, 30);
+        ctx.lineTo(700, 15);
+        ctx.lineTo(700, 45);
+        ctx.closePath();
+        const flashGrad = ctx.createRadialGradient(650, 30, 0, 650, 30, 50);
+        flashGrad.addColorStop(0, 'yellow');
+        flashGrad.addColorStop(1, 'orange');
+        ctx.fillStyle = flashGrad;
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawWeapon() {
+      time += 0.03;
+      if (currentWeapon === 0) {
+        drawPistol(); // ✅ CORRIGIDO (antes estava drawPistola())
+      } else {
+        drawSniper();
+      }
+    }
+
+    function gameLoop() {
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, width, height);
+
+      updatePlayer();
+      castRays();
+      drawMiniMap();
+      drawWeapon();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      rayCount = Math.min(width, 800); // ✅ ajusta junto com o resize
+    });
+
+    if (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) {
+      document.body.style.cursor = 'none';
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
