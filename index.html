@@ -58,7 +58,7 @@
       async function enviarParaGemini(texto) {
         balao.setAttribute('value', "Professor pensando...");
         try {
-            const res = await fetch('http://localhost:5000/perguntar', {
+            const res = await fetch('http://177.34.128.91:5000/perguntar', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({pergunta: texto})
